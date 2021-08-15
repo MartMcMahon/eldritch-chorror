@@ -127,19 +127,24 @@ async def on_message(message):
             msg = format_msg(common[i], rarity)
 
         await message.channel.send(msg)
+        rarity_s = Rarity.to_string(rarity)
+        fname = str(message.author).split("#")[0] + ".json"
         try:
-            fname = message.author.split("#")[0] + ".json"
             with open(f"users/{fname}", "r") as f:
                 data = json.load(f)
-                rarity_s = Rarity.to_string(rarity)
                 if data.get(rarity_s) is None:
                     data[rarity_s] = 0
                 data[rarity_s] += 1
             # data
+        except Exception as e:
+            print("error while reading json", e)
+            data = {rarity_s: 1}
+
+        try:
             with open(f"users/{fname}", "w") as f:
                 f.write(json.dumps(data, indent=2))
         except Exception as e:
-            print("error while doing json", e)
+            print("error while writing json", e)
 
     elif message.content.startswith("/add_c"):
         await add_chore(message, "common")
