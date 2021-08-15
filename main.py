@@ -26,6 +26,16 @@ class Rarity:
         else:
             return None
 
+    def to_string(n):
+        if n <= Rarity.EXTRA:
+            return "extra"
+        elif n <= Rarity.RARE:
+            return "rare"
+        elif n <= Rarity.UNCOMMON:
+            return "uncommon"
+        else:
+            return "common"
+
 
 # get count
 chore_pool_count = 0
@@ -118,10 +128,15 @@ async def on_message(message):
 
         await message.channel.send(msg)
         try:
-            with open(f"users/{message.author}.json", "r") as f:
+            fname = message.author.split("#")[0] + ".json"
+            with open(f"users/{fname}", "r") as f:
                 data = json.load(f)
+                rarity_s = Rarity.to_string(rarity)
+                if data.get(rarity_s) is None:
+                    data[rarity_s] = 0
+                data[rarity_s] += 1
             # data
-            with open(f"users/{message.author}.json", "w") as f:
+            with open(f"users/{fname}", "w") as f:
                 f.write(json.dumps(data, indent=2))
         except Exception as e:
             print("error while doing json", e)
@@ -138,6 +153,7 @@ async def on_message(message):
     elif message.content.startswith("/add_?"):
         await add_chore(message, "extra")
 
+
 async def add_chore(message, rarity_s):
     global chore_pool_count
     words = message.content.split()[1:]
@@ -152,5 +168,6 @@ async def add_chore(message, rarity_s):
         f.write(msg)
     await message.add_reaction("👍")
     chore_pool_count += 1
+
 
 client.run(TOKEN)
