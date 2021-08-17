@@ -158,7 +158,7 @@ async def on_message(message):
     elif message.content.startswith("/add_?"):
         await add_chore(message, "extra")
 
-    if message.content.contains("choretle"):
+    if "choretle" in message.content:
         message.add_reaction("👀")
 
 
