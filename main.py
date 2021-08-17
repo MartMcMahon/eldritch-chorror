@@ -158,6 +158,9 @@ async def on_message(message):
     elif message.content.startswith("/add_?"):
         await add_chore(message, "extra")
 
+    if message.content.contains("choretle"):
+        message.add_reaction("👀")
+
 
 async def add_chore(message, rarity_s):
     global chore_pool_count
