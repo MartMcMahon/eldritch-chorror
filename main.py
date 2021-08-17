@@ -158,8 +158,8 @@ async def on_message(message):
     elif message.content.startswith("/add_?"):
         await add_chore(message, "extra")
 
-    if "choretle" in message.content:
-        message.add_reaction("👀")
+    if "choretle" in message.content.lower():
+        await message.add_reaction("👀")
 
 
 async def add_chore(message, rarity_s):
