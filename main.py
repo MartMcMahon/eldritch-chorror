@@ -141,7 +141,7 @@ async def on_message(message):
             data = {rarity_s: 1}
 
         try:
-            with open(f"users/{fname}", "w") as f:
+            with open(f"users/{fname}", "w+") as f:
                 f.write(json.dumps(data, indent=2))
         except Exception as e:
             print("error while writing json", e)

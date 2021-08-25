@@ -3,3 +3,5 @@ lib
 pyvenv.cfg
 .env
 users
+
+db
