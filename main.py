@@ -5,6 +5,7 @@ import random
 import discord
 
 TOKEN = os.environ.get("DISCORD_CHORROR_TOKEN")
+CHOREBOT_CHANNEL_NAME = os.environ.get("CHOREBOT_CHANNEL_NAME")
 client = discord.Client()
 
 
@@ -50,6 +51,10 @@ with open("extra", "r") as f:
 chore_pool_count += len(common) + len(uncommon) + len(rare) + len(extra)
 
 
+data = {}
+chorebot_channel_id = 0
+
+
 async def private_msg(message):
     if message.content == "thanks":
         await message.author.send("no problem")
@@ -87,20 +92,58 @@ def format_msg(base_msg, rarity):
 
 @client.event
 async def on_ready():
+    global chorebot_channel, chorebot_channel_id, data
     print("logged in as {0.user}".format(client))
+
+    if os.path.isfile("data.json"):
+        print("data.json exists")
+        with open("data.json", "r") as f:
+            data = json.load(f)
+    else:
+        data = {
+            "chorebot_channel": discord.utils.get(
+                client.get_all_channels(), name=CHOREBOT_CHANNEL_NAME
+            ).id
+        }
+        with open("data.json", "w") as f:
+            f.write(json.dumps(data))
+
+    if data.get("chorebot_channel") is False:
+        raise Exception("Allowed channel unknown.")
+
+    chorebot_channel_id = data["chorebot_channel"]
+    chorebot_channel = client.get_channel(chorebot_channel_id)
+
+    await chorebot_channel.send("**Choretle has grown stronger...**")
 
 
 @client.event
 async def on_message(message):
-    global chore_pool_count
+    global chorebot_channel, chore_pool_count, data
+
+    if message.author == client.user:
+        return
+
+    allowed = message.channel.type == discord.ChannelType.private or (
+        message.channel.type == discord.ChannelType.text
+        and str(message.channel.id) == str(chorebot_channel_id)
+    )
 
     if message.channel.type == discord.ChannelType.private:
         await private_msg(message)
 
-    if message.content.lower().startswith("good morning, choretle"):
-        await message.channel.send("/me shrieks and beeps")
+    if message.content.lower().startswith("good morning") and allowed:
+        await message.channel.send("**shrieks and beeps**")
+
     elif message.content.startswith("/chore"):
+        if not allowed:
+            await message.author.send(
+                f"beep bloop! You can only ask for chores in {chorebot_channel}"
+            )
+            return
+
         rarity = random.randint(1, 100)
+        rarity_s = Rarity.to_string(rarity)
 
         if rarity <= Rarity.EXTRA:
             with open("extra", "r") as f:
@@ -127,38 +170,38 @@ async def on_message(message):
             msg = format_msg(common[i], rarity)
 
         await message.channel.send(msg)
-        rarity_s = Rarity.to_string(rarity)
+
         fname = str(message.author).split("#")[0] + ".json"
         try:
             with open(f"users/{fname}", "r") as f:
-                data = json.load(f)
-                if data.get(rarity_s) is None:
-                    data[rarity_s] = 0
-                data[rarity_s] += 1
+                user_data = json.load(f)
+                if user_data.get(rarity_s) is None:
+                    user_data[rarity_s] = 0
+                user_data[rarity_s] += 1
             # data
         except Exception as e:
             print("error while reading json", e)
-            data = {rarity_s: 1}
+            user_data = {rarity_s: 1}
 
         try:
             with open(f"users/{fname}", "w+") as f:
-                f.write(json.dumps(data, indent=2))
+                f.write(json.dumps(user_data, indent=2))
         except Exception as e:
             print("error while writing json", e)
 
-    elif message.content.startswith("/add_c"):
+    elif message.content.startswith("/add_c") and allowed:
         await add_chore(message, "common")
 
-    elif message.content.startswith("/add_u"):
+    elif message.content.startswith("/add_u") and allowed:
         await add_chore(message, "uncommon")
 
-    elif message.content.startswith("/add_r"):
+    elif message.content.startswith("/add_r") and allowed:
         await add_chore(message, "rare")
 
-    elif message.content.startswith("/add_?"):
+    elif message.content.startswith("/add_?") and allowed:
         await add_chore(message, "extra")
 
-    if "choretle" in message.content.lower():
+    if "choretle" in message.content.lower() and allowed:
         await message.add_reaction("👀")
 
 
