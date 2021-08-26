@@ -1,5 +1,6 @@
 import os
 import json
+import math
 import random
 
 import discord
@@ -90,6 +91,19 @@ def format_msg(base_msg, rarity):
     return msg
 
 
+def add_to_recent(index, rarity_s, list_size):
+    global data
+    if index is None:
+        raise Exception("invalid chore index")
+    data["recent"][rarity_s].insert(0, index)
+    data["recent"][rarity_s] = data["recent"][rarity_s][: math.floor(list_size / 10)]
+    try:
+        with open("data.json", "w") as f:
+            f.write(json.dumps(data))
+    except Exception as e:
+        print(e)
+
+
 @client.event
 async def on_ready():
     global chorebot_channel, chorebot_channel_id, data
@@ -144,6 +158,8 @@ async def on_message(message):
 
         rarity = random.randint(1, 100)
         rarity_s = Rarity.to_string(rarity)
+        if data.get("recent") is None:
+            data["recent"] = {r: [] for r in ["common", "uncommon", "rare", "extra"]}
 
         if rarity <= Rarity.EXTRA:
             with open("extra", "r") as f:
@@ -160,14 +176,20 @@ async def on_message(message):
         elif rarity <= Rarity.UNCOMMON:
             with open("uncommon", "r") as f:
                 uncommon = [line for line in f.readlines()]
-            i = random.randint(0, len(uncommon) - 1)
+            i = 0
+            while i in data["recent"][rarity_s]:
+                i = random.randint(0, len(uncommon) - 1)
             msg = format_msg(uncommon[i], rarity)
+            add_to_recent(i, rarity_s, len(uncommon))
 
         else:
             with open("common", "r") as f:
                 common = [line for line in f.readlines()]
-            i = random.randint(0, len(common) - 1)
+            i = 0
+            while i in data["recent"][rarity_s]:
+                i = random.randint(0, len(common) - 1)
             msg = format_msg(common[i], rarity)
+            add_to_recent(i, rarity_s, len(common))
 
         await message.channel.send(msg)
 
