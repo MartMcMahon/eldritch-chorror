@@ -1,16 +1,9 @@
-use hyper::header::{AsHeaderName, HeaderValue};
 use hyper::service::{make_service_fn, service_fn};
 use hyper::{Body, Request, Response, Server};
 use serde::{Deserialize, Serialize};
-use serde_json::Value;
 use std::convert::Infallible;
 use std::env;
 use std::net::SocketAddr;
-use std::path::PathBuf;
-use tokio::{
-    io::{AsyncBufReadExt, AsyncReadExt, AsyncWriteExt, BufReader},
-    net::TcpListener,
-};
 
 #[derive(Serialize, Deserialize)]
 struct Chores {
@@ -24,7 +17,7 @@ async fn listen(req: Request<Body>) -> Result<Response<Body>, Infallible> {
     let path = &*req.uri().to_string();
     let json: Vec<u8> = match path {
         "/read_all" => {
-            let mut dir: String = exe_dir();
+            let dir: String = exe_dir();
             let common = read_file(dir.clone() + "/common").await;
             let uncommon = read_file(dir.clone() + "/uncommon").await;
             let rare = read_file(dir.clone() + "/rare").await;
@@ -68,7 +61,7 @@ async fn listen(req: Request<Body>) -> Result<Response<Body>, Infallible> {
 
 #[tokio::main]
 async fn main() {
-    let addr = SocketAddr::from(([127, 0, 0, 1], 8080));
+    let addr = SocketAddr::from(([0, 0, 0, 0], 8080));
 
     let make_svc = make_service_fn(|_conn| async { Ok::<_, Infallible>(service_fn(listen)) });
 
@@ -88,7 +81,6 @@ fn exe_dir() -> String {
     dir.into_os_string().into_string().unwrap()
 }
 
-#[ignore]
 async fn write_file() {
     let f = tokio::fs::write("common", "ok").await.unwrap();
     println!("done writing");
