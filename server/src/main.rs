@@ -45,7 +45,7 @@ async fn listen(req: Request<Body>) -> Result<Response<Body>, Infallible> {
         "/write" => "ok".into(),
         _ => "nothing to do".into(),
     };
-    let mut res = Response::builder()
+    let res = Response::builder()
         .status(200)
         .header("Access-Control-Allow-Origin", "*")
         .body(json.into())
