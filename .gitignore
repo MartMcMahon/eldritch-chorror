@@ -5,3 +5,5 @@ pyvenv.cfg
 users
 
 db
+
+server/target
