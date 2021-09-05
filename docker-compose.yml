@@ -1,14 +1,14 @@
-version: '3.8'
+version: "3.8"
 services:
-  db:
-    container_name: chorebot_db_container
-    image: postgres
+  server:
+    container_name: server
+    image: ubuntu:latest
     restart: always
-    environment:
-      POSTGRES_USER: root
-      POSTGRES_PASSWORD: root
-      POSTGRES_DB: chorebot_db
     ports:
-      - "5432:5432"
-    volumes:
-      - ./db/:/var/lib/postgresql/data/
+      - "6669:6669"
+  client:
+    container_name: client
+    image: ubuntu:latest
+    restart: always
+    ports:
+      - "3000:3000"
