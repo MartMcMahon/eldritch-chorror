@@ -1,14 +1,12 @@
 version: "3.8"
 services:
   server:
+    build: ./server
     container_name: server
-    image: ubuntu:latest
-    restart: always
     ports:
       - "6669:6669"
   client:
+    build: ./client
     container_name: client
-    image: ubuntu:latest
-    restart: always
     ports:
       - "3000:3000"
