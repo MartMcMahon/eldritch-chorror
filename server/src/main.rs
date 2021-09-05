@@ -13,35 +13,30 @@ use tokio::{
 };
 
 #[derive(Serialize, Deserialize)]
-struct Package {
-    path: String,
-}
-
-#[derive(Serialize, Deserialize)]
 struct Chores {
-    commons: Vec<String>,
-    uncommons: Vec<String>,
+    common: Vec<String>,
+    uncommon: Vec<String>,
     rare: Vec<String>,
     spicy: Vec<String>,
 }
 
 async fn listen(req: Request<Body>) -> Result<Response<Body>, Infallible> {
     let path = &*req.uri().to_string();
-    let res: String = match path {
+    let json: Vec<u8> = match path {
         "/read_all" => {
             let mut dir: String = exe_dir();
-            let commons = read_file(dir.clone() + "/common").await;
-            let uncommons = read_file(dir.clone() + "/uncommon").await;
+            let common = read_file(dir.clone() + "/common").await;
+            let uncommon = read_file(dir.clone() + "/uncommon").await;
             let rare = read_file(dir.clone() + "/rare").await;
             let spicy = read_file(dir.clone() + "/spicy").await;
 
             let chores = Chores {
-                commons: commons.split("\n").map(|s| s.to_string()).collect(),
-                uncommons: uncommons.split("\n").map(|s| s.to_string()).collect(),
+                common: common.split("\n").map(|s| s.to_string()).collect(),
+                uncommon: uncommon.split("\n").map(|s| s.to_string()).collect(),
                 rare: rare.split("\n").map(|s| s.to_string()).collect(),
                 spicy: spicy.split("\n").map(|s| s.to_string()).collect(),
             };
-            let res = serde_json::to_string(&chores).unwrap();
+            let json = serde_json::to_vec(&chores).unwrap();
 
             // serde_json
             //     serde_json::to_string(commons).unwrap()
@@ -52,12 +47,23 @@ async fn listen(req: Request<Body>) -> Result<Response<Body>, Infallible> {
             //                     .await
             //                     .unwrap();
 
-            res
+            json
         }
         "/write" => "ok".into(),
         _ => "nothing to do".into(),
     };
-    Ok(Response::new(res.into()))
+    let mut res = Response::builder()
+        .status(200)
+        .header("Access-Control-Allow-Origin", "*")
+        .body(json.into())
+        .unwrap();
+    // res.headers_mut().insert(
+    //     "Access-Control-Allow-Origin",
+    //     HeaderValue::from_str("*").unwrap(),
+    // );
+    // let (parts, _body) = res.into_parts();
+    // Ok(Response::from_parts(parts, json.into()))
+    Ok(res)
 }
 
 #[tokio::main]
