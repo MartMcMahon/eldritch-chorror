@@ -83,12 +83,10 @@ fn exe_dir() -> String {
 
 async fn write_file() {
     let f = tokio::fs::write("common", "ok").await.unwrap();
-    println!("done writing");
     f
 }
 
 async fn read_file(fname: String) -> String {
     let f = tokio::fs::read_to_string(fname).await.unwrap();
-    println!("{}", f);
     f
 }

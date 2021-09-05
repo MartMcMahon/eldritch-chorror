@@ -15,7 +15,7 @@ const Main = () => {
   });
 
   useEffect(() => {
-    axios.get("http://localhost:8080/read_all").then((res) => {
+    axios.get("http://wonk.gg:8080/read_all").then((res) => {
       console.log(res.data);
       setChores(res.data);
       return res;
