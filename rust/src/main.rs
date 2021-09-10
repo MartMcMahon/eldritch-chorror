@@ -71,7 +71,8 @@ use serenity::framework::standard::{
     macros::{command, group},
     CommandResult, StandardFramework,
 };
-use serenity::model::channel::Message;
+use serenity::model::{channel::Message, gateway::Ready};
+use serenity::utils::MessageBuilder;
 
 use std::env;
 
@@ -82,7 +83,34 @@ struct General;
 struct Handler;
 
 #[async_trait]
-impl EventHandler for Handler {}
+impl EventHandler for Handler {
+    async fn message(&self, context: Context, msg: Message) {
+        if msg.content == "!ping" {
+            let channel = match msg.channel_id.to_channel(&context).await {
+                Ok(channel) => channel,
+                Err(why) => {
+                    eprintln!("Error getting channel: {:?}", why);
+                    return;
+                }
+            };
+
+            let res = MessageBuilder::new()
+                .push("User ")
+                .push_bold_safe(&msg.author.name)
+                .push(" used the pin command in the ")
+                .mention(&channel)
+                .push(" channel")
+                .build();
+            if let Err(why) = msg.channel_id.say(&context.http, &res).await {
+                eprintln!("Error sending message: {:?}", why);
+            }
+        }
+    }
+
+    async fn ready(&self, _: Context, ready: Ready) {
+        eprintln!("{} is connected", ready.user.name);
+    }
+}
 
 #[tokio::main]
 async fn main() {
