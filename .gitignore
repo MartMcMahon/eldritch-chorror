@@ -3,6 +3,9 @@ lib
 pyvenv.cfg
 .env
 users
+data.json
+lib64
+share
 
 db
 
