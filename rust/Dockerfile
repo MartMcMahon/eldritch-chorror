@@ -15,6 +15,8 @@ COPY ./dev /app
 COPY ./prod /app
 WORKDIR /app
 SHELL ["/bin/bash", "-c"]
-RUN . dev
+RUN source ./dev
+RUN mkdir ./target
+VOLUME ./target
 RUN cargo build
 CMD cargo run
