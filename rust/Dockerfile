@@ -14,4 +14,7 @@ COPY ./Cargo.toml /app
 COPY ./dev /app
 COPY ./prod /app
 WORKDIR /app
+SHELL ["/bin/bash", "-c"]
+RUN . dev
 RUN cargo build
+CMD cargo run
