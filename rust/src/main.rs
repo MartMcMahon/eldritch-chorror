@@ -92,6 +92,30 @@ impl EventHandler for Handler {
             }
             _ => {}
         }
+
+        //test long sleeps. say something in a minute
+        sleep(Duration::from_millis(60000));
+        self.allowed_channel
+            .say(
+                &context.http,
+                MessageBuilder::new().push("it's been a minute").build(),
+            )
+            .await;
+        // say in an hour
+        sleep(Duration::from_millis(3600000));
+        self.allowed_channel
+            .say(
+                &context.http,
+                MessageBuilder::new().push("it's been an hour").build(),
+            )
+            .await;
+        sleep(Duration::from_millis(3600000 * 3));
+        self.allowed_channel
+            .say(
+                &context.http,
+                MessageBuilder::new().push("it's been 3 hours").build(),
+            )
+            .await;
     }
 }
 
