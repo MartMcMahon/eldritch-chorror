@@ -9,10 +9,7 @@ RUN apt-get install -y curl
 RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
 ENV PATH="/root/.cargo/bin:${PATH}"
 
-COPY ./src /app/src
-COPY ./Cargo.toml /app
-COPY ./dev /app
-COPY ./prod /app
+COPY . /app
 WORKDIR /app
 SHELL ["/bin/bash", "-c"]
 RUN mkdir ./target
