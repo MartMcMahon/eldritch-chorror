@@ -9,10 +9,14 @@ RUN apt-get install -y curl
 RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
 ENV PATH="/root/.cargo/bin:${PATH}"
 
-COPY . /app
-WORKDIR /app
 SHELL ["/bin/bash", "-c"]
-RUN mkdir ./target
-VOLUME ./target
-RUN cargo build
-CMD source ./dev && cargo run
+WORKDIR /app
+COPY Cargo.toml .
+RUN echo "fn main() {}" > dummy.rs
+RUN sed -i 's#src/main.rs#dummy.rs#' Cargo.toml
+RUN cargo build --release
+RUN sed -i 's#dummy.rs#src/main.rs#' Cargo.toml
+COPY . .
+RUN touch -a -m ./src/main.rs
+RUN cargo build --release
+CMD source ./dev && target/release/choretle
