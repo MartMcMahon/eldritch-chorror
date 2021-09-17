@@ -1,4 +1,5 @@
 use core::str::FromStr;
+use rand::Rng;
 use serenity::async_trait;
 use serenity::client::{Client, Context, EventHandler};
 use serenity::framework::standard::StandardFramework;
@@ -6,14 +7,46 @@ use serenity::model::channel::{Channel, ReactionType};
 use serenity::model::id::ChannelId;
 use serenity::model::{channel::Message, gateway::Ready};
 use serenity::utils::MessageBuilder;
+use std::env;
+use std::fs;
 use std::thread::sleep;
 use std::time::Duration;
-
-use std::env;
 
 struct Handler {
     allowed_channel: ChannelId,
     say: Option<String>,
+}
+
+struct Rarity {
+    n: i32,
+    rarity_str: String,
+    list: Vec<String>,
+}
+impl Rarity {
+    fn new(roll: i32) -> Self {
+        let rarity_str = match roll {
+            1..=3 => "spicy".to_owned(),
+            4..=13 => "rare".to_owned(),
+            14..=43 => "uncommon".to_owned(),
+            44..=100 => "common".to_owned(),
+            _ => "none".to_owned(),
+        };
+        let file_string =
+            fs::read_to_string("../".to_owned() + &rarity_str).expect("error reading file");
+        let list: Vec<String> = file_string.split("\n").map(|s| s.to_owned()).collect();
+        println!("there are {} items in list", list.len());
+
+        Rarity {
+            n: roll,
+            rarity_str,
+            list,
+        }
+    }
+
+    fn roll_line(&self) -> &str {
+        let n = rand::thread_rng().gen_range(0..self.list.len());
+        self.list[n].as_str()
+    }
 }
 
 #[async_trait]
@@ -36,23 +69,8 @@ impl EventHandler for Handler {
             return;
         }
 
-        if msg.content == "/ping" {
-            let res = MessageBuilder::new()
-                .push("User ")
-                .push_bold_safe(&msg.author.name)
-                .push(" used the pin command in the ")
-                .mention(&msg.channel_id)
-                .push(" channel")
-                .build();
-            if let Err(why) = msg.channel_id.say(&context.http, &res).await {
-                eprintln!("Error sending message: {:?}", why);
-            }
-        }
-
         let message = msg.content.to_lowercase();
         if message.starts_with("good morning") {
-            eprintln!("hello");
-
             let res = MessageBuilder::new()
                 .push_bold_line_safe("beeps")
                 .push("ⓖⓞⓞⓓ ⓜⓞⓡⓝⓘⓝⓖ")
@@ -61,10 +79,19 @@ impl EventHandler for Handler {
                 eprintln!("Error sending message: {:?}", why);
             }
         } else if message.starts_with("/chore") {
-            let res = MessageBuilder::new().push("a chore").build();
+            let rarity_roll: i32 = rand::thread_rng().gen_range(0..100);
+            eprintln!("rarity: {}", rarity_roll);
+
+            let rarity = Rarity::new(rarity_roll);
+
+            let mut line = "";
+            while line.is_empty() {
+                line = rarity.roll_line();
+            }
+            let res = MessageBuilder::new().push(line).build();
 
             msg.channel_id.broadcast_typing(&context.http).await;
-            sleep(Duration::from_millis(2000));
+            sleep(Duration::from_millis(666));
 
             if let Err(why) = msg.channel_id.say(&context.http, &res).await {
                 eprintln!("Error sending message: {:?}", why);
@@ -92,35 +119,15 @@ impl EventHandler for Handler {
             }
             _ => {}
         }
-
-        //test long sleeps. say something in a minute
-        sleep(Duration::from_millis(60000));
-        self.allowed_channel
-            .say(
-                &context.http,
-                MessageBuilder::new().push("it's been a minute").build(),
-            )
-            .await;
-        // say in an hour
-        sleep(Duration::from_millis(3600000));
-        self.allowed_channel
-            .say(
-                &context.http,
-                MessageBuilder::new().push("it's been an hour").build(),
-            )
-            .await;
-        sleep(Duration::from_millis(3600000 * 3));
-        self.allowed_channel
-            .say(
-                &context.http,
-                MessageBuilder::new().push("it's been 3 hours").build(),
-            )
-            .await;
     }
 }
 
 #[tokio::main]
 async fn main() {
+    let rarity_roll = rand::thread_rng().gen_range(1..100);
+    let r = Rarity::new(rarity_roll);
+    eprintln!("{}", rarity_roll);
+
     let framework = StandardFramework::new().configure(|c| c.prefix("~")); // set the bot's prefix to "~"
 
     // Login with a bot token from the environment
@@ -135,6 +142,8 @@ async fn main() {
             if args[2..].len() > 0 {
                 say = Some(args[2..].join(" "));
             }
+        } else if args[1].eq("script") {
+            eprintln!("TODO: get file named {:?}", args[2]);
         }
     }
 
@@ -154,3 +163,27 @@ async fn main() {
         println!("An error occurred while running the client: {:?}", why);
     }
 }
+
+////test long sleeps. say something in a minute
+//sleep(Duration::from_millis(60000));
+//self.allowed_channel
+//    .say(
+//        &context.http,
+//        MessageBuilder::new().push("it's been a minute").build(),
+//    )
+//    .await;
+//// say in an hour
+//sleep(Duration::from_millis(3600000));
+//self.allowed_channel
+//    .say(
+//        &context.http,
+//        MessageBuilder::new().push("it's been an hour").build(),
+//    )
+//    .await;
+//sleep(Duration::from_millis(3600000 * 3));
+//self.allowed_channel
+//    .say(
+//        &context.http,
+//        MessageBuilder::new().push("it's been 3 hours").build(),
+//    )
+//    .await;
