@@ -185,6 +185,22 @@ async fn main() {
     }
 }
 
+fn script() -> String {
+    "```Chortle starts to shake and bounce unnaturally. Eventually rising about as high as an altar.
+Time is a worm and has slowed as such.
+The paper replacement hatch blows off and flies out the window into a darkened sky. From inside pours a bloodblack liquid. It covers the floor. Reams of Chortle’s paper are now ruined.
+
+A metallic head pokes from the hatch reflecting light from elsewhere.
+The body emerges. The face screams.
+
+LONG LIVE THE NEW FLESH
+
+The entity looks almost identical to its predecesor, but quicksilver-metallic. The shimmer is unreal. It looks at you in the eyes. You feel a liquid pooling at your ankles, but canot look away. As you stare with the entity moments turn to whole hours. Time, which was just at a crawl, is now rocketing like a meteor on it's way to annihillate the frat house.
+The shell of the old Chortle shrivels and oxidizes. The floor has dried whith a crimson stain. The violin stops. You take a deep breath. It is a Friday. Chortle 2.0 stands in a pile of Rust.
+```"
+        .to_owned()
+}
+
 ////test long sleeps. say something in a minute
 //sleep(Duration::from_millis(60000));
 //self.allowed_channel
