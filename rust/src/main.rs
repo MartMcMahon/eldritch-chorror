@@ -117,7 +117,7 @@ impl EventHandler for Handler {
             if let Err(why) = msg.channel_id.say(&context.http, &res).await {
                 eprintln!("Error sending message: {:?}", why);
             }
-        } else if message.contains("choretle") {
+        } else if message.contains("choretle") || message.contains("choretortle") {
             eprintln!("reacting");
             msg.react(&context.http, ReactionType::from('👀')).await;
         }
