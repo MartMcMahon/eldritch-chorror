@@ -17,13 +17,28 @@ struct Handler {
     say: Option<String>,
 }
 
+enum RarityType {
+    Spicy,
+    Rare,
+    Uncommon,
+    Common,
+}
+
 struct Rarity {
     n: i32,
+    rarity_type: RarityType,
     rarity_str: String,
     list: Vec<String>,
 }
 impl Rarity {
     fn new(roll: i32) -> Self {
+        let rarity_type = match roll {
+            1..=3 => RarityType::Spicy,
+            4..=13 => RarityType::Rare,
+            14..=43 => RarityType::Uncommon,
+            44..=100 => RarityType::Common,
+            _ => RarityType::Common,
+        };
         let rarity_str = match roll {
             1..=3 => "spicy".to_owned(),
             4..=13 => "rare".to_owned(),
@@ -31,13 +46,13 @@ impl Rarity {
             44..=100 => "common".to_owned(),
             _ => "none".to_owned(),
         };
-        let file_string =
-            fs::read_to_string("../".to_owned() + &rarity_str).expect("error reading file");
+        let file_string = fs::read_to_string(&rarity_str).expect("error reading file");
         let list: Vec<String> = file_string.split("\n").map(|s| s.to_owned()).collect();
         println!("there are {} items in list", list.len());
 
         Rarity {
             n: roll,
+            rarity_type,
             rarity_str,
             list,
         }
@@ -88,7 +103,13 @@ impl EventHandler for Handler {
             while line.is_empty() {
                 line = rarity.roll_line();
             }
-            let res = MessageBuilder::new().push(line).build();
+            let lang = match rarity.rarity_type {
+                RarityType::Spicy => Some("diff"),
+                RarityType::Rare => Some("md"),
+                RarityType::Uncommon => Some("cs"),
+                RarityType::Common => None,
+            };
+            let res = MessageBuilder::new().push_codeblock(line, lang).build();
 
             msg.channel_id.broadcast_typing(&context.http).await;
             sleep(Duration::from_millis(666));
@@ -143,7 +164,7 @@ async fn main() {
                 say = Some(args[2..].join(" "));
             }
         } else if args[1].eq("script") {
-            eprintln!("TODO: get file named {:?}", args[2]);
+            say = Some(script());
         }
     }
 
