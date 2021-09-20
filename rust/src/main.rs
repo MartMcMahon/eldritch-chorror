@@ -140,7 +140,20 @@ impl EventHandler for Handler {
             }
             _ => {}
         }
+
+        test_moon();
     }
+}
+
+async fn test_moon() {
+    let body = reqwest::get("https://svs.gsfc.nasa.gov/Gallery/moonphase.html")
+        .await
+        .unwrap()
+        .text()
+        .await
+        .unwrap();
+
+    println!("body = {:?}", body);
 }
 
 #[tokio::main]
