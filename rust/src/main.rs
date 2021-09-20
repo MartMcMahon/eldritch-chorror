@@ -3,18 +3,20 @@ use rand::Rng;
 use serenity::async_trait;
 use serenity::client::{Client, Context, EventHandler};
 use serenity::framework::standard::StandardFramework;
-use serenity::model::channel::{Channel, ReactionType};
-use serenity::model::id::ChannelId;
-use serenity::model::{channel::Message, gateway::Ready};
+use serenity::model::{
+    channel::{Message, ReactionType},
+    gateway::Ready,
+    id::ChannelId,
+};
 use serenity::utils::MessageBuilder;
-use std::env;
-use std::fs;
 use std::thread::sleep;
 use std::time::Duration;
+use std::{env, fs};
 
 struct Handler {
     allowed_channel: ChannelId,
-    say: Option<String>,
+    mode: Mode,
+    args: Option<String>,
 }
 
 enum RarityType {
@@ -30,6 +32,14 @@ struct Rarity {
     rarity_str: String,
     list: Vec<String>,
 }
+
+enum Mode {
+    Command,
+    Normal,
+    Say,
+    Script,
+}
+
 impl Rarity {
     fn new(roll: i32) -> Self {
         let rarity_type = match roll {
@@ -39,12 +49,11 @@ impl Rarity {
             44..=100 => RarityType::Common,
             _ => RarityType::Common,
         };
-        let rarity_str = match roll {
-            1..=3 => "spicy".to_owned(),
-            4..=13 => "rare".to_owned(),
-            14..=43 => "uncommon".to_owned(),
-            44..=100 => "common".to_owned(),
-            _ => "none".to_owned(),
+        let rarity_str = match rarity_type {
+            RarityType::Spicy => "spicy".to_owned(),
+            RarityType::Rare => "rare".to_owned(),
+            RarityType::Uncommon => "uncommon".to_owned(),
+            RarityType::Common => "common".to_owned(),
         };
         let file_string = fs::read_to_string(&rarity_str).expect("error reading file");
         let list: Vec<String> = file_string.split("\n").map(|s| s.to_owned()).collect();
@@ -83,6 +92,10 @@ impl EventHandler for Handler {
         if !allowed & !msg.is_private() {
             return;
         }
+
+        // did we say this?
+        // if msg.author == &self.
+        println!("name: {:?}", context.data.name);
 
         let message = msg.content.to_lowercase();
         if message.starts_with("good morning") {
