@@ -17,9 +17,8 @@ use std::{env, fs};
 
 struct Handler {
     allowed_channel: ChannelId,
-    // mode: Mode,
-    // args: Option<String>,
-    say: Option<String>,
+    mode: Mode,
+    args: Option<String>,
 }
 
 enum RarityType {
@@ -37,7 +36,7 @@ struct Rarity {
 }
 
 enum Mode {
-    Command,
+    Calc,
     Normal,
     Say,
     Script,
@@ -79,9 +78,9 @@ impl Rarity {
 #[async_trait]
 impl EventHandler for Handler {
     async fn message(&self, context: Context, msg: Message) {
-        match &self.say {
-            Some(_s) => return,
-            _ => {}
+        match &self.mode {
+            Mode::Normal => {}
+            _ => return,
         }
         let channel = match msg.channel_id.to_channel(&context).await {
             Ok(channel) => channel,
@@ -149,16 +148,26 @@ impl EventHandler for Handler {
     async fn ready(&self, context: Context, ready: Ready) {
         eprintln!("{} is connected", ready.user.name);
 
-        match &self.say {
-            Some(s) => {
-                self.allowed_channel.broadcast_typing(&context.http).await;
-                sleep(Duration::from_millis(2000));
-                let res = MessageBuilder::new().push(s).build();
+        match &self.mode {
+            Mode::Say => match &self.args {
+                Some(s) => {
+                    self.allowed_channel.broadcast_typing(&context.http).await;
+                    sleep(Duration::from_millis(2000));
+                    let res = MessageBuilder::new().push(s).build();
 
-                if let Err(why) = self.allowed_channel.say(&context.http, &res).await {
-                    eprintln!("Error sending message: {:?}", why);
+                    if let Err(why) = self.allowed_channel.say(&context.http, &res).await {
+                        eprintln!("Error sending message: {:?}", why);
+                    }
+                    std::process::exit(0);
                 }
-                std::process::exit(0);
+                None => {
+                    eprintln!("need args");
+                    std::process::exit(0)
+                }
+            },
+            Mode::Calc => {
+                eprintln!("m : calc");
+                std::process::exit(0)
             }
             _ => {}
         }
@@ -202,21 +211,33 @@ async fn main() {
         ChannelId::from_str(&env::var("ALLOWED_CHANNEL_ID").expect("allowed_channel_id")).unwrap();
 
     let args: Vec<String> = env::args().collect();
-    let mut say = None;
+    let mut handler = Handler {
+        allowed_channel,
+        args: None,
+        mode: Mode::Normal,
+    };
     if args.len() > 1 {
         if args[1].eq("say") {
             if args[2..].len() > 0 {
-                say = Some(args[2..].join(" "));
+                // handler_args = Some(args[2..].join(" "));
+                handler = Handler {
+                    allowed_channel,
+                    args: Some(args[2..].join(" ")),
+                    mode: Mode::Say,
+                }
+            } else {
+                eprintln!("need args to say!");
+                return;
             }
-        } else if args[1].eq("script") {
-            say = Some(script());
+        } else if args[1].eq("calc") {
+            // handler_args = Some(script());
+            handler = Handler {
+                allowed_channel,
+                args: Some(args[2..].join(" ")),
+                mode: Mode::Calc,
+            }
         }
     }
-
-    let handler = Handler {
-        allowed_channel,
-        say,
-    };
 
     let mut client = Client::builder(token)
         .event_handler(handler)
