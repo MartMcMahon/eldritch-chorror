@@ -8,6 +8,7 @@ RUN apt update && apt upgrade -y
 RUN apt-get install -y curl
 RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
 ENV PATH="/root/.cargo/bin:${PATH}"
+ENV OPENSSL_DIR="/usr/local/openssl"
 
 SHELL ["/bin/bash", "-c"]
 WORKDIR /app
