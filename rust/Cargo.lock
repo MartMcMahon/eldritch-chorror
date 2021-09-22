@@ -972,8 +972,10 @@ dependencies = [
 name = "rust"
 version = "0.1.0"
 dependencies = [
+ "chrono",
  "rand 0.8.4",
  "reqwest",
+ "serde",
  "serenity",
  "tokio",
 ]

@@ -1,5 +1,7 @@
+use chrono::DateTime;
 use core::str::FromStr;
 use rand::Rng;
+use serde::Deserialize;
 use serenity::async_trait;
 use serenity::client::{Client, Context, EventHandler};
 use serenity::framework::standard::StandardFramework;
@@ -15,8 +17,9 @@ use std::{env, fs};
 
 struct Handler {
     allowed_channel: ChannelId,
-    mode: Mode,
-    args: Option<String>,
+    // mode: Mode,
+    // args: Option<String>,
+    say: Option<String>,
 }
 
 enum RarityType {
@@ -93,10 +96,6 @@ impl EventHandler for Handler {
             return;
         }
 
-        // did we say this?
-        // if msg.author == &self.
-        println!("name: {:?}", context.data.name);
-
         let message = msg.content.to_lowercase();
         if message.starts_with("good morning") {
             let res = MessageBuilder::new()
@@ -128,9 +127,20 @@ impl EventHandler for Handler {
             sleep(Duration::from_millis(666));
 
             if let Err(why) = msg.channel_id.say(&context.http, &res).await {
-                eprintln!("Error sending message: {:?}", why);
+                eprintln!("Error sending chore message: {:?}", why);
             }
-        } else if message.contains("choretle") || message.contains("choretortle") {
+        } else if message.starts_with("/moon") {
+            let line = match get_moon_phase().await {
+                Ok(phase) => "The moon is ".to_owned() + phase.to_string().as_str() + "% full.",
+                Err(_why) => "Vibes are off. Cannot determine the moon.".to_owned(),
+            };
+
+            let res = MessageBuilder::new().push(line).build();
+            if let Err(why) = msg.channel_id.say(&context.http, &res).await {
+                eprintln!("Error sending moon message: {:?}", why);
+            }
+        }
+        if message.contains("choretle") || message.contains("choretortle") {
             eprintln!("reacting");
             msg.react(&context.http, ReactionType::from('👀')).await;
         }
@@ -138,7 +148,6 @@ impl EventHandler for Handler {
 
     async fn ready(&self, context: Context, ready: Ready) {
         eprintln!("{} is connected", ready.user.name);
-        eprintln!("allowed in {}", self.allowed_channel);
 
         match &self.say {
             Some(s) => {
@@ -153,20 +162,30 @@ impl EventHandler for Handler {
             }
             _ => {}
         }
-
-        test_moon();
     }
 }
 
-async fn test_moon() {
-    let body = reqwest::get("https://svs.gsfc.nasa.gov/Gallery/moonphase.html")
-        .await
-        .unwrap()
-        .text()
-        .await
-        .unwrap();
+#[derive(Clone, Debug, Deserialize)]
+struct Data {
+    time: String,
+    phase: f32,
+    age: f32,
+    diameter: f32,
+    distance: f32,
+}
+async fn get_moon_phase() -> Result<f32, Box<dyn std::error::Error>> {
+    let body: Vec<Data> =
+        reqwest::get("https://svs.gsfc.nasa.gov/vis/a000000/a004800/a004874/mooninfo_2021.json")
+            .await
+            .unwrap()
+            .json()
+            .await
+            .unwrap();
 
-    println!("body = {:?}", body);
+    let year_start: i64 = DateTime::parse_from_rfc3339("2021-01-01T00:00:00+00:00")?.timestamp();
+    let now = chrono::Utc::now().timestamp();
+    let idx = (now - year_start) / 3600;
+    Ok(body[idx as usize].clone().phase)
 }
 
 #[tokio::main]
@@ -226,27 +245,3 @@ The shell of the old Chortle shrivels and oxidizes. The floor has dried whith a 
 ```"
         .to_owned()
 }
-
-////test long sleeps. say something in a minute
-//sleep(Duration::from_millis(60000));
-//self.allowed_channel
-//    .say(
-//        &context.http,
-//        MessageBuilder::new().push("it's been a minute").build(),
-//    )
-//    .await;
-//// say in an hour
-//sleep(Duration::from_millis(3600000));
-//self.allowed_channel
-//    .say(
-//        &context.http,
-//        MessageBuilder::new().push("it's been an hour").build(),
-//    )
-//    .await;
-//sleep(Duration::from_millis(3600000 * 3));
-//self.allowed_channel
-//    .say(
-//        &context.http,
-//        MessageBuilder::new().push("it's been 3 hours").build(),
-//    )
-//    .await;
