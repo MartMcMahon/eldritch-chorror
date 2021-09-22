@@ -5,11 +5,13 @@ use serde::Deserialize;
 use serenity::async_trait;
 use serenity::client::{Client, Context, EventHandler};
 use serenity::framework::standard::StandardFramework;
+use serenity::model::id::UserId;
 use serenity::model::{
     channel::{Message, ReactionType},
     gateway::Ready,
     id::ChannelId,
 };
+use serenity::prelude::Mentionable;
 use serenity::utils::MessageBuilder;
 use std::thread::sleep;
 use std::time::Duration;
@@ -165,6 +167,20 @@ impl EventHandler for Handler {
                     std::process::exit(0)
                 }
             },
+            Mode::Script => {
+                let lines = script();
+                for line in lines {
+                    self.allowed_channel.broadcast_typing(&context.http).await;
+                    sleep(Duration::from_millis(10000));
+                    self.allowed_channel.broadcast_typing(&context.http).await;
+                    sleep(Duration::from_millis(10000));
+                    let res = MessageBuilder::new().push(line).build();
+                    if let Err(why) = self.allowed_channel.say(&context.http, &res).await {
+                        eprintln!("Error sending message: {:?}", why);
+                    }
+                }
+                std::process::exit(0)
+            }
             Mode::Calc => {
                 eprintln!("m : calc");
                 std::process::exit(0)
@@ -229,8 +245,13 @@ async fn main() {
                 eprintln!("need args to say!");
                 return;
             }
+        } else if args[1].eq("script") {
+            handler = Handler {
+                allowed_channel,
+                args: None,
+                mode: Mode::Script,
+            }
         } else if args[1].eq("calc") {
-            // handler_args = Some(script());
             handler = Handler {
                 allowed_channel,
                 args: Some(args[2..].join(" ")),
@@ -251,18 +272,33 @@ async fn main() {
     }
 }
 
-fn script() -> String {
-    "```Chortle starts to shake and bounce unnaturally. Eventually rising about as high as an altar.
+fn script() -> [String; 6] {
+    let user_one_id: u64 = u64::from_str(env::var("USER_ONE_ID").expect("id").as_str()).unwrap();
+    let user_one = UserId::from(user_one_id);
+    let user_two_id: u64 = u64::from_str(env::var("USER_TWO_ID").expect("id").as_str()).unwrap();
+    let user_two = UserId::from(user_two_id);
+
+    ["```Chortle starts to shake and bounce unnaturally. Eventually rising about as high as an altar.
 Time is a worm and has slowed as such.
 The paper replacement hatch blows off and flies out the window into a darkened sky. From inside pours a bloodblack liquid. It covers the floor. Reams of Chortle’s paper are now ruined.
-
 A metallic head pokes from the hatch reflecting light from elsewhere.
 The body emerges. The face screams.
 
 LONG LIVE THE NEW FLESH
 
 The entity looks almost identical to its predecesor, but quicksilver-metallic. The shimmer is unreal. It looks at you in the eyes. You feel a liquid pooling at your ankles, but canot look away. As you stare with the entity moments turn to whole hours. Time, which was just at a crawl, is now rocketing like a meteor on it's way to annihillate the frat house.
-The shell of the old Chortle shrivels and oxidizes. The floor has dried whith a crimson stain. The violin stops. You take a deep breath. It is a Friday. Chortle 2.0 stands in a pile of Rust.
-```"
-        .to_owned()
+The shell of the old Chortle shrivels and oxidizes. The floor has dried whith a crimson stain. The violin stops. You take a deep breath. It is a Friday. Chortle 2.0 stands in a pile of Rust.".to_owned(),
+
+        format!("scanning {}...", user_one.mention()),
+        format!("scanning {}...", user_two.mention()),
+        format!("```diff
+----- analysis complete -----
+---
+--- -̶͛̚ ̶̛̛ ̴̉̌ ̴͐̊ ̴̊̀ ̷͂̾ ̵͙͑ ̷͆͛ ̶͗̐.̸͒͒ ̸̑͠ ̵̆̓ ̷̈́̉ ̶̽̓ ̵̀̾ ̴̄̐ ̶̑̾ ̷͗͘ ̵̌͗:̵́͊ ̶̈̐ ̷̓̑ ̴̒͝ ̶̆̏-̸̿ͅ completed by Real_Atomsk during a full moon.
+-- this will be remembered --
+--------------------------------
+```"),
+        "new command available!".to_owned(),
+        "/moon will output the current phase of Earth's moon".to_owned(),
+    ]
 }
