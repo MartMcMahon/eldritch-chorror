@@ -156,6 +156,7 @@ impl EventHandler for Handler {
             match msg.channel_id.say(&context.http, &res).await {
                 Ok(_r) => {
                     if !is_ascend {
+                        increment_count(msg.author.id);
                         remove_line(rarity.rarity_str.as_str(), list)
                     }
                 }
@@ -169,6 +170,18 @@ impl EventHandler for Handler {
                 Err(_why) => "Vibes are off. Cannot determine the moon.".to_owned(),
             };
 
+            let res = MessageBuilder::new().push(line).build();
+            if let Err(why) = msg.channel_id.say(&context.http, &res).await {
+                eprintln!("Error sending moon message: {:?}", why);
+            }
+        } else if message.starts_with("/stats") {
+            let d: HashMap<UserId, i32> = read_stats_map();
+            let count = d.get(&msg.author.id);
+
+            let line = match count {
+                Some(c) => format!("You have completed {} chores.", c),
+                None => "You have not done any chores! This upsets Choretortle.".to_owned(),
+            };
             let res = MessageBuilder::new().push(line).build();
             if let Err(why) = msg.channel_id.say(&context.http, &res).await {
                 eprintln!("Error sending moon message: {:?}", why);
@@ -212,6 +225,7 @@ impl EventHandler for Handler {
                         eprintln!("Error sending message: {:?}", why);
                     }
                 }
+
                 std::process::exit(0)
             }
             Mode::Calc => {
@@ -301,6 +315,24 @@ fn count_message_stats(messages: Vec<Message>) -> HashMap<UserId, i32> {
     }
 
     count
+}
+
+fn read_stats_map() -> HashMap<UserId, i32> {
+    serde_json::from_str(
+        fs::read_to_string("stats")
+            .expect("error reading file")
+            .as_str(),
+    )
+    .unwrap()
+}
+
+fn increment_count(user: UserId) -> i32 {
+    let mut d = read_stats_map();
+    let n = *d.get(&user).unwrap() + 1;
+    d.insert(user, n);
+    fs::write("stats", serde_json::to_string(&d).unwrap())
+        .expect("error writing to update stats file");
+    n
 }
 
 #[derive(Clone, Debug, Deserialize)]
