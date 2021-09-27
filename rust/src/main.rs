@@ -3,7 +3,6 @@ use core::str::FromStr;
 use rand::Rng;
 use serde::Deserialize;
 use serenity::async_trait;
-use serenity::builder::GetMessages;
 use serenity::client::{Client, Context, EventHandler};
 use serenity::framework::standard::StandardFramework;
 use serenity::model::id::UserId;
@@ -11,13 +10,10 @@ use serenity::model::{
     channel::{Message, ReactionType},
     gateway::Ready,
     id::ChannelId,
-    id::MessageId,
 };
 use serenity::prelude::Mentionable;
 use serenity::utils::MessageBuilder;
 use std::collections::HashMap;
-use std::future::Future;
-use std::hash::Hash;
 use std::thread::sleep;
 use std::time::Duration;
 use std::{env, fs};
@@ -28,6 +24,7 @@ struct Handler {
     args: Option<String>,
 }
 
+#[derive(Clone, Copy)]
 enum RarityType {
     Spicy,
     Rare,
@@ -35,18 +32,22 @@ enum RarityType {
     Common,
 }
 
-struct Rarity {
-    n: i32,
-    rarity_type: RarityType,
-    rarity_str: String,
-    list: Vec<String>,
-}
-
 enum Mode {
     Calc,
     Normal,
     Say,
     Script,
+}
+
+struct Roll {
+    n: usize,
+    line: String,
+}
+
+struct Rarity {
+    n: i32,
+    rarity_type: RarityType,
+    rarity_str: String,
 }
 
 impl Rarity {
@@ -64,21 +65,15 @@ impl Rarity {
             RarityType::Uncommon => "uncommon".to_owned(),
             RarityType::Common => "common".to_owned(),
         };
-        let file_string = fs::read_to_string(&rarity_str).expect("error reading file");
-        let list: Vec<String> = file_string.split("\n").map(|s| s.to_owned()).collect();
-        println!("there are {} items in list", list.len());
+        // let file_string = fs::read_to_string(&rarity_str).expect("error reading file");
+        // let list: Vec<String> = file_string.split("\n").map(|s| s.to_owned()).collect();
+        // println!("there are {} items in list", list.len());
 
         Rarity {
             n: roll,
             rarity_type,
             rarity_str,
-            list,
         }
-    }
-
-    fn roll_line(&self) -> &str {
-        let n = rand::thread_rng().gen_range(0..self.list.len());
-        self.list[n].as_str()
     }
 }
 
@@ -113,21 +108,24 @@ impl EventHandler for Handler {
             }
         } else if message.starts_with("/chore") {
             let rarity_roll: i32 = rand::thread_rng().gen_range(0..100);
-            eprintln!("rarity: {}", rarity_roll);
-
             let rarity = Rarity::new(rarity_roll);
+            let mut list = collect_f(rarity.rarity_str.as_str());
 
-            let mut line = "";
-            while line.is_empty() {
-                line = rarity.roll_line();
-            }
+            let n = rand::thread_rng().gen_range(0..list.len());
+            let roll = Roll {
+                n,
+                line: list.remove(n).clone(),
+            };
+
             let lang = match rarity.rarity_type {
                 RarityType::Spicy => Some("diff"),
                 RarityType::Rare => Some("md"),
                 RarityType::Uncommon => Some("cs"),
                 RarityType::Common => None,
             };
-            let res = MessageBuilder::new().push_codeblock(line, lang).build();
+            let res = MessageBuilder::new()
+                .push_codeblock(roll.line, lang)
+                .build();
 
             msg.channel_id.broadcast_typing(&context.http).await;
             sleep(Duration::from_millis(666));
@@ -194,13 +192,18 @@ impl EventHandler for Handler {
 
                 let count: HashMap<UserId, i32> = count_message_stats(messages);
 
-                for (key, v) in count {
+                for (key, v) in &count {
                     eprintln!("{} {}", key, v);
                 }
+
+                fs::write("stats", serde_json::to_string(&count).unwrap())
+                    .expect("error with stats file");
                 eprintln!("done");
                 std::process::exit(0)
             }
-            _ => {}
+            _ => {
+                // normal
+            }
         }
     }
 }
@@ -208,18 +211,16 @@ impl EventHandler for Handler {
 async fn fetch_all_messages(allowed_channel: ChannelId, context: &Context) -> Vec<Message> {
     let mut messages = Vec::new();
     let mut new_messages = Vec::new();
-
-    let m = allowed_channel
+    let mut oldest_message_id = allowed_channel
         .messages(&context.http, |ret| ret.limit(1))
         .await
-        .unwrap();
-    eprintln!("m {:?}", m.first().id);
-
-    let mut oldest_message_id = MessageId(891757517556813905);
+        .unwrap()
+        .first()
+        .unwrap()
+        .id;
     let mut is_more = true;
 
     while is_more {
-        eprintln!("new_messages is  {} big ", new_messages.len());
         async {
             new_messages = allowed_channel
                 .messages(&context.http, |retriever| {
@@ -230,7 +231,6 @@ async fn fetch_all_messages(allowed_channel: ChannelId, context: &Context) -> Ve
         }
         .await;
 
-        eprintln!("just received message list is {} big ", new_messages.len());
         if new_messages.len() < 100 {
             is_more = false;
             break;
@@ -296,11 +296,20 @@ async fn get_moon_phase() -> Result<f32, Box<dyn std::error::Error>> {
     Ok(body[idx as usize].clone().phase)
 }
 
+fn collect_f(fname: &str) -> Vec<String> {
+    fs::read_to_string(fname)
+        .expect("error reading file")
+        .split("\n")
+        .map(|s| s.to_owned())
+        .collect()
+}
+
 #[tokio::main]
 async fn main() {
-    let rarity_roll = rand::thread_rng().gen_range(1..100);
-    let r = Rarity::new(rarity_roll);
-    eprintln!("{}", rarity_roll);
+    // let common_list = collect_f("common");
+    // let uncommon_list = collect_f("uncommon");
+    // let rare_list = collect_f("rare");
+    // let spicy_list = collect_f("spicy");
 
     let framework = StandardFramework::new().configure(|c| c.prefix("~")); // set the bot's prefix to "~"
 
@@ -310,6 +319,12 @@ async fn main() {
         ChannelId::from_str(&env::var("ALLOWED_CHANNEL_ID").expect("allowed_channel_id")).unwrap();
 
     let args: Vec<String> = env::args().collect();
+    // let chorelist = ChoreList {
+    //     common: common_list,
+    //     uncommon: uncommon_list,
+    //     rare: rare_list,
+    //     spicy: spicy_list,
+    // };
     let mut handler = Handler {
         allowed_channel,
         args: None,
@@ -340,6 +355,12 @@ async fn main() {
                 args: Some(args[2..].join(" ")),
                 mode: Mode::Calc,
             }
+        } else {
+            handler = Handler {
+                allowed_channel,
+                args: None,
+                mode: Mode::Normal,
+            };
         }
     }
 
