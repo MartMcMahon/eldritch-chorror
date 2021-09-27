@@ -234,6 +234,17 @@ impl EventHandler for Handler {
                 let messages = fetch_all_messages(self.allowed_channel, &context).await;
                 eprintln!("{}", messages.len());
 
+                for m in &messages {
+                    if m.content.contains("LONG LIVE THE NEW FLESH")
+                        || m.content
+                            .contains("You can now see how many chores you've completed with")
+                        || m.content
+                            .contains("will output the current phase of Earth's moon")
+                        || m.content.contains("- Ascend. -")
+                    {
+                        m.pin(&context.http).await;
+                    }
+                }
                 let count: HashMap<UserId, i32> = count_message_stats(messages);
 
                 for (key, v) in &count {
@@ -439,14 +450,14 @@ async fn main() {
     }
 }
 
-fn script() -> [String; 4] {
-    let user_one_id: u64 = u64::from_str(env::var("USER_ONE_ID").expect("id").as_str()).unwrap();
-    let user_one = UserId::from(user_one_id);
-    let user_two_id: u64 = u64::from_str(env::var("USER_TWO_ID").expect("id").as_str()).unwrap();
-    let user_two = UserId::from(user_two_id);
-    let user_three_id: u64 =
-        u64::from_str(env::var("USER_THREE_ID").expect("id").as_str()).unwrap();
-    let user_three = UserId::from(user_three_id);
+fn script() -> [String; 2] {
+    // let user_one_id: u64 = u64::from_str(env::var("USER_ONE_ID").expect("id").as_str()).unwrap();
+    // let user_one = UserId::from(user_one_id);
+    // let user_two_id: u64 = u64::from_str(env::var("USER_TWO_ID").expect("id").as_str()).unwrap();
+    // let user_two = UserId::from(user_two_id);
+    // let user_three_id: u64 =
+    //     u64::from_str(env::var("USER_THREE_ID").expect("id").as_str()).unwrap();
+    // let user_three = UserId::from(user_three_id);
 
     [
         // "```Chortle starts to shake and bounce unnaturally. Eventually rising about as high as an altar.
@@ -459,10 +470,11 @@ fn script() -> [String; 4] {
 
         // The entity looks almost identical to its predecesor, but quicksilver-metallic. The shimmer is unreal. It looks at you in the eyes. You feel a liquid pooling at your ankles, but canot look away. As you stare with the entity moments turn to whole hours. Time, which was just at a crawl, is now rocketing like a meteor on it's way to annihillate the frat house.
         // The shell of the old Chortle shrivels and oxidizes. The floor has dried whith a crimson stain. The violin stops. You take a deep breath. It is a Friday. Chortle 2.0 stands in a pile of Rust.".to_owned(),
-        format!("scanning {}...", user_one.mention()),
-        format!("scanning {}...", user_two.mention()),
-        format!("scanning {}...", user_three.mention()),
-        "*Choretortle begins to shimmer*".to_owned()
+        // format!("scanning {}...", user_one.mention()),
+        // format!("scanning {}...", user_two.mention()),
+        // format!("scanning {}...", user_three.mention()),
+        "*Choretortle begins ticking*".to_owned(),
+        "You can now see how many chores you've completed with `/stats`.".to_owned()
         // format!("```diff
         // ----- analysis complete -----
         // ---
