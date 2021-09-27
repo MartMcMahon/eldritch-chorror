@@ -349,11 +349,6 @@ fn is_decorated(line: &String) -> bool {
 
 #[tokio::main]
 async fn main() {
-    // let common_list = collect_f("common");
-    // let uncommon_list = collect_f("uncommon");
-    // let rare_list = collect_f("rare");
-    // let spicy_list = collect_f("spicy");
-
     let framework = StandardFramework::new().configure(|c| c.prefix("~")); // set the bot's prefix to "~"
 
     // Login with a bot token from the environment
@@ -362,12 +357,6 @@ async fn main() {
         ChannelId::from_str(&env::var("ALLOWED_CHANNEL_ID").expect("allowed_channel_id")).unwrap();
 
     let args: Vec<String> = env::args().collect();
-    // let chorelist = ChoreList {
-    //     common: common_list,
-    //     uncommon: uncommon_list,
-    //     rare: rare_list,
-    //     spicy: spicy_list,
-    // };
     let mut handler = Handler {
         allowed_channel,
         args: None,
@@ -376,7 +365,6 @@ async fn main() {
     if args.len() > 1 {
         if args[1].eq("say") {
             if args[2..].len() > 0 {
-                // handler_args = Some(args[2..].join(" "));
                 handler = Handler {
                     allowed_channel,
                     args: Some(args[2..].join(" ")),
@@ -419,33 +407,38 @@ async fn main() {
     }
 }
 
-fn script() -> [String; 6] {
+fn script() -> [String; 4] {
     let user_one_id: u64 = u64::from_str(env::var("USER_ONE_ID").expect("id").as_str()).unwrap();
     let user_one = UserId::from(user_one_id);
     let user_two_id: u64 = u64::from_str(env::var("USER_TWO_ID").expect("id").as_str()).unwrap();
     let user_two = UserId::from(user_two_id);
+    let user_three_id: u64 =
+        u64::from_str(env::var("USER_THREE_ID").expect("id").as_str()).unwrap();
+    let user_three = UserId::from(user_three_id);
 
-    ["```Chortle starts to shake and bounce unnaturally. Eventually rising about as high as an altar.
-Time is a worm and has slowed as such.
-The paper replacement hatch blows off and flies out the window into a darkened sky. From inside pours a bloodblack liquid. It covers the floor. Reams of Chortle’s paper are now ruined.
-A metallic head pokes from the hatch reflecting light from elsewhere.
-The body emerges. The face screams.
+    [
+        // "```Chortle starts to shake and bounce unnaturally. Eventually rising about as high as an altar.
+        // Time is a worm and has slowed as such.
+        // The paper replacement hatch blows off and flies out the window into a darkened sky. From inside pours a bloodblack liquid. It covers the floor. Reams of Chortle’s paper are now ruined.
+        // A metallic head pokes from the hatch reflecting light from elsewhere.
+        // The body emerges. The face screams.
 
-LONG LIVE THE NEW FLESH
+        // LONG LIVE THE NEW FLESH
 
-The entity looks almost identical to its predecesor, but quicksilver-metallic. The shimmer is unreal. It looks at you in the eyes. You feel a liquid pooling at your ankles, but canot look away. As you stare with the entity moments turn to whole hours. Time, which was just at a crawl, is now rocketing like a meteor on it's way to annihillate the frat house.
-The shell of the old Chortle shrivels and oxidizes. The floor has dried whith a crimson stain. The violin stops. You take a deep breath. It is a Friday. Chortle 2.0 stands in a pile of Rust.".to_owned(),
-
+        // The entity looks almost identical to its predecesor, but quicksilver-metallic. The shimmer is unreal. It looks at you in the eyes. You feel a liquid pooling at your ankles, but canot look away. As you stare with the entity moments turn to whole hours. Time, which was just at a crawl, is now rocketing like a meteor on it's way to annihillate the frat house.
+        // The shell of the old Chortle shrivels and oxidizes. The floor has dried whith a crimson stain. The violin stops. You take a deep breath. It is a Friday. Chortle 2.0 stands in a pile of Rust.".to_owned(),
         format!("scanning {}...", user_one.mention()),
         format!("scanning {}...", user_two.mention()),
-        format!("```diff
------ analysis complete -----
----
---- -̶͛̚ ̶̛̛ ̴̉̌ ̴͐̊ ̴̊̀ ̷͂̾ ̵͙͑ ̷͆͛ ̶͗̐.̸͒͒ ̸̑͠ ̵̆̓ ̷̈́̉ ̶̽̓ ̵̀̾ ̴̄̐ ̶̑̾ ̷͗͘ ̵̌͗:̵́͊ ̶̈̐ ̷̓̑ ̴̒͝ ̶̆̏-̸̿ͅ completed by Real_Atomsk during a full moon.
--- this will be remembered --
---------------------------------
-```"),
-        "new command available!".to_owned(),
-        "/moon will output the current phase of Earth's moon".to_owned(),
+        format!("scanning {}...", user_three.mention()),
+        "*Choretortle begins to shimmer*".to_owned()
+        // format!("```diff
+        // ----- analysis complete -----
+        // ---
+        // --- -̶͛̚ ̶̛̛ ̴̉̌ ̴͐̊ ̴̊̀ ̷͂̾ ̵͙͑ ̷͆͛ ̶͗̐.̸͒͒ ̸̑͠ ̵̆̓ ̷̈́̉ ̶̽̓ ̵̀̾ ̴̄̐ ̶̑̾ ̷͗͘ ̵̌͗:̵́͊ ̶̈̐ ̷̓̑ ̴̒͝ ̶̆̏-̸̿ͅ completed by Real_Atomsk during a full moon.
+        // -- this will be remembered --
+        // --------------------------------
+        // ```"),
+        // "new command available!".to_owned(),
+        // "/moon will output the current phase of Earth's moon".to_owned(),
     ]
 }
