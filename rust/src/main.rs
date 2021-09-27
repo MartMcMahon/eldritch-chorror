@@ -3,6 +3,7 @@ use core::str::FromStr;
 use rand::Rng;
 use serde::Deserialize;
 use serenity::async_trait;
+use serenity::builder::GetMessages;
 use serenity::client::{Client, Context, EventHandler};
 use serenity::framework::standard::StandardFramework;
 use serenity::model::id::UserId;
@@ -10,9 +11,13 @@ use serenity::model::{
     channel::{Message, ReactionType},
     gateway::Ready,
     id::ChannelId,
+    id::MessageId,
 };
 use serenity::prelude::Mentionable;
 use serenity::utils::MessageBuilder;
+use std::collections::HashMap;
+use std::future::Future;
+use std::hash::Hash;
 use std::thread::sleep;
 use std::time::Duration;
 use std::{env, fs};
@@ -183,11 +188,89 @@ impl EventHandler for Handler {
             }
             Mode::Calc => {
                 eprintln!("m : calc");
+
+                let messages = fetch_all_messages(self.allowed_channel, &context).await;
+                eprintln!("{}", messages.len());
+
+                let count: HashMap<UserId, i32> = count_message_stats(messages);
+
+                for (key, v) in count {
+                    eprintln!("{} {}", key, v);
+                }
+                eprintln!("done");
                 std::process::exit(0)
             }
             _ => {}
         }
     }
+}
+
+async fn fetch_all_messages(allowed_channel: ChannelId, context: &Context) -> Vec<Message> {
+    let mut messages = Vec::new();
+    let mut new_messages = Vec::new();
+
+    let m = allowed_channel
+        .messages(&context.http, |ret| ret.limit(1))
+        .await
+        .unwrap();
+    eprintln!("m {:?}", m.first().id);
+
+    let mut oldest_message_id = MessageId(891757517556813905);
+    let mut is_more = true;
+
+    while is_more {
+        eprintln!("new_messages is  {} big ", new_messages.len());
+        async {
+            new_messages = allowed_channel
+                .messages(&context.http, |retriever| {
+                    retriever.before(oldest_message_id).limit(100)
+                })
+                .await
+                .unwrap();
+        }
+        .await;
+
+        eprintln!("just received message list is {} big ", new_messages.len());
+        if new_messages.len() < 100 {
+            is_more = false;
+            break;
+        }
+        oldest_message_id = new_messages.last().unwrap().id;
+        messages.append(&mut new_messages);
+    }
+    messages
+}
+
+fn count_message_stats(messages: Vec<Message>) -> HashMap<UserId, i32> {
+    let mut count: HashMap<UserId, i32> = HashMap::new();
+    for i in 0..messages.len() {
+        if i == messages.len() {
+            break;
+        }
+        let mess = &messages[i];
+        if mess.author.name.eq("Choretortle, Giver of Chores") || mess.author.name.eq("Choretle") {
+            let prev = &messages[i + 1];
+
+            let rarity;
+            if mess.content.contains("diff") {
+                rarity = RarityType::Spicy;
+            } else if mess.content.contains("md") {
+                rarity = RarityType::Rare;
+            } else if mess.content.contains("cs") {
+                rarity = RarityType::Uncommon;
+            } else {
+                rarity = RarityType::Common;
+            }
+            match count.get_mut(&prev.author.id) {
+                Some(c) => *c += 1,
+                None => {
+                    count.insert(prev.author.id, 1);
+                }
+            }
+        }
+    }
+
+    count
 }
 
 #[derive(Clone, Debug, Deserialize)]
