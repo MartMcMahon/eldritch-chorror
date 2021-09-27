@@ -24,7 +24,7 @@ struct Handler {
     args: Option<String>,
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug)]
 enum RarityType {
     Spicy,
     Rare,
@@ -65,9 +65,6 @@ impl Rarity {
             RarityType::Uncommon => "uncommon".to_owned(),
             RarityType::Common => "common".to_owned(),
         };
-        // let file_string = fs::read_to_string(&rarity_str).expect("error reading file");
-        // let list: Vec<String> = file_string.split("\n").map(|s| s.to_owned()).collect();
-        // println!("there are {} items in list", list.len());
 
         Rarity {
             n: roll,
@@ -107,31 +104,61 @@ impl EventHandler for Handler {
                 eprintln!("Error sending message: {:?}", why);
             }
         } else if message.starts_with("/chore") {
-            let rarity_roll: i32 = rand::thread_rng().gen_range(0..100);
-            let rarity = Rarity::new(rarity_roll);
-            let mut list = collect_f(rarity.rarity_str.as_str());
-
-            let n = rand::thread_rng().gen_range(0..list.len());
-            let roll = Roll {
-                n,
-                line: list.remove(n).clone(),
+            let mut rarity = Rarity::new(100);
+            let mut list = vec!["".to_owned()];
+            let mut roll = Roll {
+                n: 0,
+                line: "".to_owned(),
             };
 
-            let lang = match rarity.rarity_type {
-                RarityType::Spicy => Some("diff"),
-                RarityType::Rare => Some("md"),
-                RarityType::Uncommon => Some("cs"),
+            while roll.line.is_empty() {
+                let rarity_roll: i32 = rand::thread_rng().gen_range(0..100);
+                rarity = Rarity::new(rarity_roll);
+                list = collect_f(rarity.rarity_str.as_str());
+
+                let n = rand::thread_rng().gen_range(0..list.len());
+
+                roll = Roll {
+                    n,
+                    line: list.remove(n).clone(),
+                };
+            }
+            eprintln!("decided on line {:?}", roll.line);
+            eprintln!("is empty: {:?}", roll.line.is_empty());
+
+            // eprintln!("rarity: {:?}", rarity.rarity_type);
+            let mut lang = match rarity.rarity_type {
                 RarityType::Common => None,
+                RarityType::Uncommon => Some("cs"),
+                RarityType::Rare => Some("md"),
+                RarityType::Spicy => Some("diff"),
             };
-            let res = MessageBuilder::new()
-                .push_codeblock(roll.line, lang)
-                .build();
+            if is_decorated(&roll.line) {
+                lang = None;
+            }
+            let line = match rarity.rarity_type {
+                RarityType::Common => roll.line,
+                RarityType::Uncommon => "'  ".to_owned() + roll.line.as_str() + "  '",
+                RarityType::Rare => "#  ".to_owned() + roll.line.as_str() + "  #",
+                RarityType::Spicy => "-  ".to_owned() + roll.line.as_str() + "  -",
+            };
+            let is_ascend = line.eq("-  Ascend.  -");
+            let res = match lang {
+                Some(lang) => MessageBuilder::new()
+                    .push_codeblock(line, Some(lang))
+                    .build(),
+                None => MessageBuilder::new().push(line).build(),
+            };
 
             msg.channel_id.broadcast_typing(&context.http).await;
             sleep(Duration::from_millis(666));
 
             match msg.channel_id.say(&context.http, &res).await {
-                Ok(_r) => remove_line(rarity.rarity_str.as_str(), list),
+                Ok(_r) => {
+                    if !is_ascend {
+                        remove_line(rarity.rarity_str.as_str(), list)
+                    }
+                }
                 Err(why) => {
                     eprintln!("Error sending chore message: {:?}", why);
                 }
@@ -314,6 +341,10 @@ fn remove_line(fname: &str, new_list: Vec<String>) {
             eprintln!("error writing new list: {}", why);
         }
     }
+}
+
+fn is_decorated(line: &String) -> bool {
+    line.contains("||") || line.contains("~~")
 }
 
 #[tokio::main]
