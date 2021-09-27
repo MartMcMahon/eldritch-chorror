@@ -130,8 +130,11 @@ impl EventHandler for Handler {
             msg.channel_id.broadcast_typing(&context.http).await;
             sleep(Duration::from_millis(666));
 
-            if let Err(why) = msg.channel_id.say(&context.http, &res).await {
-                eprintln!("Error sending chore message: {:?}", why);
+            match msg.channel_id.say(&context.http, &res).await {
+                Ok(_r) => remove_line(rarity.rarity_str.as_str(), list),
+                Err(why) => {
+                    eprintln!("Error sending chore message: {:?}", why);
+                }
             }
         } else if message.starts_with("/moon") {
             let line = match get_moon_phase().await {
@@ -302,6 +305,15 @@ fn collect_f(fname: &str) -> Vec<String> {
         .split("\n")
         .map(|s| s.to_owned())
         .collect()
+}
+
+fn remove_line(fname: &str, new_list: Vec<String>) {
+    match fs::write(fname, new_list.join("\n")) {
+        Ok(res) => res,
+        Err(why) => {
+            eprintln!("error writing new list: {}", why);
+        }
+    }
 }
 
 #[tokio::main]
