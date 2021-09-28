@@ -38,3 +38,5 @@ yarn-error.log*
 /rust/target
 rust/dev
 rust/prod
+
+run.sh

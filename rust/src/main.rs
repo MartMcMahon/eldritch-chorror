@@ -252,7 +252,7 @@ impl EventHandler for Handler {
                     eprintln!("{} {}", key, v);
                 }
 
-                fs::write("stats", serde_json::to_string(&count).unwrap())
+                fs::write("chores/stats", serde_json::to_string(&count).unwrap())
                     .expect("error with stats file");
                 eprintln!("done");
                 std::process::exit(0)
@@ -331,7 +331,7 @@ fn count_message_stats(messages: Vec<Message>) -> HashMap<UserId, i32> {
 
 fn read_stats_map() -> HashMap<UserId, i32> {
     serde_json::from_str(
-        fs::read_to_string("stats")
+        fs::read_to_string("chores/stats")
             .expect("error reading file")
             .as_str(),
     )
@@ -342,7 +342,7 @@ fn increment_count(user: UserId) -> i32 {
     let mut d = read_stats_map();
     let n = *d.get(&user).unwrap() + 1;
     d.insert(user, n);
-    fs::write("stats", serde_json::to_string(&d).unwrap())
+    fs::write("chores/stats", serde_json::to_string(&d).unwrap())
         .expect("error writing to update stats file");
     n
 }
@@ -371,7 +371,7 @@ async fn get_moon_phase() -> Result<f32, Box<dyn std::error::Error>> {
 }
 
 fn collect_f(fname: &str) -> Vec<String> {
-    fs::read_to_string(fname)
+    fs::read_to_string("chores/".to_owned() + fname)
         .expect("error reading file")
         .split("\n")
         .map(|s| s.to_owned())
@@ -379,7 +379,7 @@ fn collect_f(fname: &str) -> Vec<String> {
 }
 
 fn remove_line(fname: &str, new_list: Vec<String>) {
-    match fs::write(fname, new_list.join("\n")) {
+    match fs::write("chores/".to_owned() + fname, new_list.join("\n")) {
         Ok(res) => res,
         Err(why) => {
             eprintln!("error writing new list: {}", why);
