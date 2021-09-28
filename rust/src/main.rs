@@ -340,7 +340,10 @@ fn read_stats_map() -> HashMap<UserId, i32> {
 
 fn increment_count(user: UserId) -> i32 {
     let mut d = read_stats_map();
-    let n = *d.get(&user).unwrap() + 1;
+    let n = match d.get(&user) {
+        Some(i) => *i + 1,
+        None => 1,
+    };
     d.insert(user, n);
     fs::write("chores/stats", serde_json::to_string(&d).unwrap())
         .expect("error writing to update stats file");
