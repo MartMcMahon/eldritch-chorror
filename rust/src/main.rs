@@ -234,17 +234,18 @@ impl EventHandler for Handler {
                 let messages = fetch_all_messages(self.allowed_channel, &context).await;
                 eprintln!("{}", messages.len());
 
-                for m in &messages {
-                    if m.content.contains("LONG LIVE THE NEW FLESH")
-                        || m.content
-                            .contains("You can now see how many chores you've completed with")
-                        || m.content
-                            .contains("will output the current phase of Earth's moon")
-                        || m.content.contains("- Ascend. -")
-                    {
-                        m.pin(&context.http).await;
-                    }
-                }
+                //                 don't have permission to pin it seems :/
+                //                 for m in &messages {
+                //                     if m.content.contains("LONG LIVE THE NEW FLESH")
+                //                         || m.content
+                //                             .contains("You can now see how many chores you've completed with")
+                //                         || m.content
+                //                             .contains("will output the current phase of Earth's moon")
+                //                         || m.content.contains("- Ascend. -")
+                //                     {
+                //                         m.pin(&context.http).await;
+                //                     }
+                //                 }
                 let count: HashMap<UserId, i32> = count_message_stats(messages);
 
                 for (key, v) in &count {
