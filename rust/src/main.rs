@@ -24,7 +24,7 @@ struct Handler {
     args: Option<String>,
 }
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, PartialEq)]
 enum RarityType {
     Spicy,
     Rare,
@@ -159,6 +159,18 @@ impl EventHandler for Handler {
                         increment_count(msg.author.id);
                         remove_line(rarity.rarity_str.as_str(), list)
                     }
+
+                    if rarity.rarity_type == RarityType::Spicy {
+                        let user_id = msg.author.id;
+                        let scanline = format!("scanning {}...", user_id.mention());
+
+                        let scan_mes = MessageBuilder::new().push(scanline).build();
+                        if let Err(why) = self.allowed_channel.say(&context.http, &scan_mes).await {
+                            eprintln!("Error sending message: {:?}", why);
+                        }
+
+                        self.allowed_channel.broadcast_typing(&context.http).await;
+                    }
                 }
                 Err(why) => {
                     eprintln!("Error sending chore message: {:?}", why);
@@ -224,6 +236,11 @@ impl EventHandler for Handler {
                     if let Err(why) = self.allowed_channel.say(&context.http, &res).await {
                         eprintln!("Error sending message: {:?}", why);
                     }
+
+                    self.allowed_channel.broadcast_typing(&context.http).await;
+                    sleep(Duration::from_millis(10000));
+                    self.allowed_channel.broadcast_typing(&context.http).await;
+                    sleep(Duration::from_millis(10000));
                 }
 
                 std::process::exit(0)
