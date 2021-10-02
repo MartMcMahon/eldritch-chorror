@@ -250,12 +250,12 @@ impl EventHandler for Handler {
                     sleep(Duration::from_millis(10000));
                 }
 
-                let m = self
-                    .allowed_channel
-                    .message(&context, custom_react_msg)
-                    .await
-                    .unwrap();
-                m.react(&context.http, ReactionType::from('👀')).await;
+                // let m = self
+                //     .allowed_channel
+                //     .message(&context, custom_react_msg)
+                //     .await
+                //     .unwrap();
+                // m.react(&context.http, ReactionType::from('👀')).await;
 
                 std::process::exit(0)
             }
