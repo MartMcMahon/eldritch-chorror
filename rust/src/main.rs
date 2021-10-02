@@ -5,7 +5,7 @@ use serde::Deserialize;
 use serenity::async_trait;
 use serenity::client::{Client, Context, EventHandler};
 use serenity::framework::standard::StandardFramework;
-use serenity::model::id::UserId;
+use serenity::model::id::{MessageId, UserId};
 use serenity::model::{
     channel::{Message, ReactionType},
     gateway::Ready,
@@ -190,10 +190,17 @@ impl EventHandler for Handler {
             let d: HashMap<UserId, i32> = read_stats_map();
             let count = d.get(&msg.author.id);
 
-            let line = match count {
+            let mut line = match count {
                 Some(c) => format!("You have completed {} chores.", c),
                 None => "You have not done any chores! This upsets Choretortle.".to_owned(),
             };
+            let asterisk_user_id = env::var("ASTERISK_USER_ID").expect("userid");
+            if msg.author.id == UserId::from_str(asterisk_user_id.as_str()).unwrap() {
+                line = format!(
+                    "You have completed {:?}* chores.\n(* with the help of -ads).",
+                    count.unwrap()
+                );
+            }
             let res = MessageBuilder::new().push(line).build();
             if let Err(why) = msg.channel_id.say(&context.http, &res).await {
                 eprintln!("Error sending moon message: {:?}", why);
@@ -242,6 +249,13 @@ impl EventHandler for Handler {
                     self.allowed_channel.broadcast_typing(&context.http).await;
                     sleep(Duration::from_millis(10000));
                 }
+
+                let m = self
+                    .allowed_channel
+                    .message(&context, custom_react_msg)
+                    .await
+                    .unwrap();
+                m.react(&context.http, ReactionType::from('👀')).await;
 
                 std::process::exit(0)
             }
@@ -471,7 +485,7 @@ async fn main() {
     }
 }
 
-fn script() -> [String; 2] {
+fn script() -> [String; 0] {
     // let user_one_id: u64 = u64::from_str(env::var("USER_ONE_ID").expect("id").as_str()).unwrap();
     // let user_one = UserId::from(user_one_id);
     // let user_two_id: u64 = u64::from_str(env::var("USER_TWO_ID").expect("id").as_str()).unwrap();
@@ -494,8 +508,8 @@ fn script() -> [String; 2] {
         // format!("scanning {}...", user_one.mention()),
         // format!("scanning {}...", user_two.mention()),
         // format!("scanning {}...", user_three.mention()),
-        "*Choretortle begins ticking*".to_owned(),
-        "You can now see how many chores you've completed with `/stats`.".to_owned()
+        // "*Choretortle begins ticking*".to_owned(),
+        // "You can now see how many chores you've completed with `/stats`.".to_owned()
         // format!("```diff
         // ----- analysis complete -----
         // ---
