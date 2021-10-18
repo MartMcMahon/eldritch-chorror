@@ -13,7 +13,7 @@ use serenity::model::{
 };
 use serenity::prelude::Mentionable;
 use serenity::utils::MessageBuilder;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::thread::sleep;
 use std::time::Duration;
 use std::{env, fs};
@@ -155,21 +155,65 @@ impl EventHandler for Handler {
 
             match msg.channel_id.say(&context.http, &res).await {
                 Ok(_r) => {
-                    if !is_ascend {
-                        increment_count(msg.author.id);
-                        remove_line(rarity.rarity_str.as_str(), list)
-                    }
-
-                    if rarity.rarity_type == RarityType::Spicy {
-                        let user_id = msg.author.id;
-                        let scanline = format!("scanning {}...", user_id.mention());
-
-                        let scan_mes = MessageBuilder::new().push(scanline).build();
-                        if let Err(why) = self.allowed_channel.say(&context.http, &scan_mes).await {
-                            eprintln!("Error sending message: {:?}", why);
+                    if is_ascend {
+                        self.allowed_channel.broadcast_typing(&context.http).await;
+                        let mut ascended_count = i32::from_str(
+                            fs::read_to_string("chores/ascended_count")
+                                .expect("error reading ascended_count")
+                                .as_str(),
+                        )
+                        .expect("error converting to i32");
+                        ascended_count += 1;
+                        fs::write("chores/ascended_count", ascended_count.to_string());
+                        if ascended_count >= 7 {
+                            if let Err(why) = self
+                                .allowed_channel
+                                .say(
+                                    &context.http,
+                                    MessageBuilder::new()
+                                        .push("Chores too spicy. Cooldown imminent.".to_owned())
+                                        .build(),
+                                )
+                                .await
+                            {
+                                eprintln!("Error sending message: {:?}", why);
+                            }
+                        } else if ascended_count == 10 {
+                            // shutdown
+                            if let Err(why) = self
+                                .allowed_channel
+                                .say(
+                                    &context.http,
+                                    MessageBuilder::new()
+                                        .push("Choretle's shell begins to harden!".to_owned())
+                                        .build(),
+                                )
+                                .await
+                            {
+                                eprintln!("Error sending message: {:?}", why);
+                            }
+                        } else if ascended_count > 10 {
+                            return;
+                        }
+                    } else {
+                        if !is_ascend {
+                            increment_count(msg.author.id);
+                            remove_line(rarity.rarity_str.as_str(), list)
                         }
 
-                        self.allowed_channel.broadcast_typing(&context.http).await;
+                        if rarity.rarity_type == RarityType::Spicy {
+                            let user_id = msg.author.id;
+                            let scanline = format!("scanning {}...", user_id.mention());
+
+                            let scan_mes = MessageBuilder::new().push(scanline).build();
+                            if let Err(why) =
+                                self.allowed_channel.say(&context.http, &scan_mes).await
+                            {
+                                eprintln!("Error sending message: {:?}", why);
+                            }
+
+                            self.allowed_channel.broadcast_typing(&context.http).await;
+                        }
                     }
                 }
                 Err(why) => {
@@ -250,18 +294,17 @@ impl EventHandler for Handler {
                     sleep(Duration::from_millis(10000));
                 }
 
-                // let m = self
-                //     .allowed_channel
-                //     .message(&context, custom_react_msg)
-                //     .await
-                //     .unwrap();
-                // m.react(&context.http, ReactionType::from('👀')).await;
+                let custom_react_msg = 893900558933590076;
+                let m = self
+                    .allowed_channel
+                    .message(&context, custom_react_msg)
+                    .await
+                    .unwrap();
+                m.react(&context.http, ReactionType::from('👀')).await;
 
                 std::process::exit(0)
             }
             Mode::Calc => {
-                eprintln!("m : calc");
-
                 let messages = fetch_all_messages(self.allowed_channel, &context).await;
                 eprintln!("{}", messages.len());
 
@@ -277,15 +320,30 @@ impl EventHandler for Handler {
                 //                         m.pin(&context.http).await;
                 //                     }
                 //                 }
-                let count: HashMap<UserId, i32> = count_message_stats(messages);
 
-                for (key, v) in &count {
-                    eprintln!("{} {}", key, v);
+                let mut ascended = HashSet::new();
+
+                for i in 0..messages.len() {
+                    if i == messages.len() {
+                        break;
+                    }
+                    let m = &messages[i];
+                    if m.content.contains("-  Ascend.  -") {
+                        let prev = &messages[i + 1];
+                        ascended.insert(&prev.author);
+                        eprintln!("{} ascended", &prev.author);
+                    }
                 }
+
+                let count: HashMap<UserId, i32> = count_message_stats(&messages);
+                eprintln!("ascended {}", ascended.len() as f32);
+                eprintln!("total {}", count.len() as f32);
+                // eprintln!( "ascended  / total = {}", ascended.len() as f32 / count.len() as f32);
 
                 fs::write("chores/stats", serde_json::to_string(&count).unwrap())
                     .expect("error with stats file");
                 eprintln!("done");
+
                 std::process::exit(0)
             }
             _ => {
@@ -328,14 +386,17 @@ async fn fetch_all_messages(allowed_channel: ChannelId, context: &Context) -> Ve
     messages
 }
 
-fn count_message_stats(messages: Vec<Message>) -> HashMap<UserId, i32> {
+fn count_message_stats(messages: &Vec<Message>) -> HashMap<UserId, i32> {
     let mut count: HashMap<UserId, i32> = HashMap::new();
     for i in 0..messages.len() {
-        if i == messages.len() {
+        if i >= messages.len() - 1 {
             break;
         }
         let mess = &messages[i];
-        if mess.author.name.eq("Choretortle, Giver of Chores") || mess.author.name.eq("Choretle") {
+        if mess.author.name.eq("Choretortle, Giver of Chores")
+            || mess.author.name.eq("Choretle")
+            || mess.author.name.eq("choretle_dev")
+        {
             let prev = &messages[i + 1];
 
             let rarity;
@@ -356,7 +417,6 @@ fn count_message_stats(messages: Vec<Message>) -> HashMap<UserId, i32> {
             }
         }
     }
-
     count
 }
 
