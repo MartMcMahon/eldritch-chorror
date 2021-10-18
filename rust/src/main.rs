@@ -77,6 +77,9 @@ impl Rarity {
 #[async_trait]
 impl EventHandler for Handler {
     async fn message(&self, context: Context, msg: Message) {
+        // HIBERNATING
+        let hibernating = true;
+
         match &self.mode {
             Mode::Normal => {}
             _ => return,
@@ -104,6 +107,9 @@ impl EventHandler for Handler {
                 eprintln!("Error sending message: {:?}", why);
             }
         } else if message.starts_with("/chore") {
+            if hibernating {
+                return;
+            }
             let mut rarity = Rarity::new(100);
             let mut list = vec!["".to_owned()];
             let mut roll = Roll {
