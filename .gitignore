@@ -1,27 +1,9 @@
-bin
-lib
-pyvenv.cfg
+# rust
+target
+dev
+prod
+
 .env
-users
-data.json
-lib64
-share
-
-db
-
-server/target
-
-# client
-# dependencies
-node_modules
-/client/.pnp
-.pnp.js
-
-# testing
-/client/coverage
-
-# production
-/client/build
 
 # misc
 .DS_Store
@@ -29,14 +11,5 @@ node_modules
 .env.development.local
 .env.test.local
 .env.production.local
-
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-
-# rust
-/rust/target
-rust/dev
-rust/prod
 
 run.sh

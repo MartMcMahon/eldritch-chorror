@@ -255,6 +255,21 @@ impl EventHandler for Handler {
             if let Err(why) = msg.channel_id.say(&context.http, &res).await {
                 eprintln!("Error sending moon message: {:?}", why);
             }
+        } else if message.starts_with("/add") {
+            eprintln!("/add");
+            // msg.author.say(&context.http, "What is the chore?")
+            // msg.author.say(&context.http, "Which rarity did you wan")
+            let t = &message[6..];
+            let fname;
+            if message.starts_with("/add_c") {
+                fname = "common";
+            } else if message.starts_with("/add_u") {
+                fname = "uncommon";
+            } else if message.starts_with("/add_r") {
+                fname = "rare";
+            } else if message.starts_with("/add_s") {
+                fname = "spicy";
+            }
         }
         if message.contains("choretle") || message.contains("choretortle") {
             eprintln!("reacting");
