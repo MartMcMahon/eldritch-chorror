@@ -14,9 +14,14 @@ use serenity::model::{
 use serenity::prelude::Mentionable;
 use serenity::utils::MessageBuilder;
 use std::collections::{HashMap, HashSet};
+use std::fs;
+use std::io::Write;
 use std::thread::sleep;
 use std::time::Duration;
-use std::{env, fs};
+use std::{
+    env,
+    fs::{File, OpenOptions},
+};
 
 struct Handler {
     allowed_channel: ChannelId,
@@ -78,12 +83,12 @@ impl Rarity {
 impl EventHandler for Handler {
     async fn message(&self, context: Context, msg: Message) {
         // HIBERNATING
-        let hibernating = true;
+        let hibernating = false;
 
-        match &self.mode {
-            Mode::Normal => {}
-            _ => return,
-        }
+        // match &self.mode {
+        //     Mode::Normal => {}
+        //     _ => return,
+        // }
         let channel = match msg.channel_id.to_channel(&context).await {
             Ok(channel) => channel,
             Err(why) => {
@@ -256,19 +261,31 @@ impl EventHandler for Handler {
                 eprintln!("Error sending moon message: {:?}", why);
             }
         } else if message.starts_with("/add") {
-            eprintln!("/add");
-            // msg.author.say(&context.http, "What is the chore?")
-            // msg.author.say(&context.http, "Which rarity did you wan")
             let t = &message[6..];
             let fname;
             if message.starts_with("/add_c") {
-                fname = "common";
+                fname = "common".to_owned();
             } else if message.starts_with("/add_u") {
-                fname = "uncommon";
+                fname = "uncommon".to_owned();
             } else if message.starts_with("/add_r") {
-                fname = "rare";
+                fname = "rare".to_owned();
             } else if message.starts_with("/add_s") {
-                fname = "spicy";
+                fname = "spicy".to_owned();
+            } else {
+                fname = "".to_owned();
+            }
+
+            if !fname.is_empty() {
+                let mut file = OpenOptions::new()
+                    .append(true)
+                    .open(format!("chores/{}", fname))
+                    .unwrap();
+                let new_chore = message
+                    .split(" ")
+                    .map(|s| s.to_owned())
+                    .collect::<Vec<String>>()[1..]
+                    .join(" ");
+                file.write_all(format!("{}\n", new_chore).as_bytes());
             }
         }
         if message.contains("choretle") || message.contains("choretortle") {
