@@ -279,7 +279,7 @@ impl EventHandler for Handler {
                 let mut file = OpenOptions::new()
                     .append(true)
                     .open(format!("chores/{}", fname))
-                    .unwrap();
+                    .expect(format!("couldn't find file chores/{}", fname).as_str());
                 let new_chore = message
                     .split(" ")
                     .map(|s| s.to_owned())
