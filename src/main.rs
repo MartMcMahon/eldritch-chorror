@@ -113,17 +113,17 @@ impl EventHandler for Handler {
             }
         } else if message.starts_with("/chore") {
             if hibernating {
-                if let Err(why) = self.allowed_channel
+                if let Err(why) = self
+                    .allowed_channel
                     .say(
                         &context.http,
                         MessageBuilder::new()
                             .push("Choretortle emits a somber snore...".to_owned())
                             .build(),
                     )
-                        .await
-                            {
-                                eprintln!("Error sending message: {:?}", why);
-                            }
+                    .await
+                {
+                    eprintln!("Error sending message: {:?}", why);
                 }
                 return;
             }
